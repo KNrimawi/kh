@@ -8,11 +8,17 @@ class UploadsController extends Controller
     	return view('upload');
     }
     public function postUpload(request $request){
-    	 return Response::json(['name'=> 'khaled','age'=>45]);
+    	 $request->file->storeAs('public',$request->file->getClientOriginalName());
     }
      public function getTest(){
     	 return response()->json(['name'=> 'khaled','age'=>45]);
     	
+    	
+    }
+     public function postTest(request $request){
+    	 // return response()->json(['name'=> 'khaled','age'=>45]);
+    	// $request->file->store('public');
+    	$request->file->store('public');
     	
     }
 }
