@@ -6,9 +6,9 @@
       <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
       <script src="/js/xhr2.js"></script>
 
-      
+
       <script type="text/javascript">
-         $(function(){
+     /*    $(function(){
                $('#upload').on("click",function(){
                      $.ajaxSetup({
                          headers: {
@@ -19,19 +19,20 @@
                       console.log(data);
                      },$("#prog"));
                });
-         });
-         
+         });*/
+
       </script>
    </head>
    <body>
-      
-    
-     <input type="file" id="file" name="file">
 
-    <input type="button" id="upload" value="upload">
-    <br>
-    <progress value="100" max="100" min="0" id="prog">
+   <form method="POST" action="/upload" enctype='multipart/form-data'>
+       {{csrf_field()}}
+       <div class="form-group">
+           <input type="file" name="file" accept="image/* ">
+           <button type="submit" class="btn btn-primary">Upload</button>
+       </div>
+   </form>
 
    </body>
- 
+
 </html>
