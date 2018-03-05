@@ -12,7 +12,7 @@ class UploadsController extends Controller
     }
      public function getTest(){
     	 return response()->json(['name'=> 'khaled','age'=>45]);
-    	 $this->info('Display this on the screen');
+    	
     	
     }
 }

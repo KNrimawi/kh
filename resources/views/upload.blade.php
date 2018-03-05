@@ -16,11 +16,11 @@
          $(function(){
             
             $('#btn').click(function(){
-              var data={
-                text:$('#txt').val(),
-                token:$('input[name=_token]').val()
-              }
-              data = JSON.stringify(data);
+              // var data={
+              //   text:$('#txt').val(),
+              //   token:$('input[name=_token]').val()
+              // }
+              // data = JSON.stringify(data);
               $.ajax({
                   
                   url:"https://cec33601.ngrok.io/upload",
