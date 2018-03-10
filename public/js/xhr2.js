@@ -54,6 +54,7 @@ $.fn.upload = function(remote,data,successFn,progressFn) {
 				},
 				data: formData,
 				cache: false,
+				timeout:0,
 				contentType: false,
 				processData: false,
 				complete : function(res) {

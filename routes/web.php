@@ -13,5 +13,3 @@
 
 Route::get('/upload','UploadsController@getUpload');
 Route::post('/upload','UploadsController@postUpload');
-Route::get('/test','UploadsController@getTest');
-Route::post('/test','UploadsController@postTest');

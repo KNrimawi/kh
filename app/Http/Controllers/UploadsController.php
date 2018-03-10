@@ -1,49 +1,77 @@
 <?php
 namespace App\Http\Controllers;
-use Carbon\Carbon;
+
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Http\UploadedFile;
+use Pion\Laravel\ChunkUpload\Exceptions\UploadMissingFileException;
+use Pion\Laravel\ChunkUpload\Handler\AbstractHandler;
+use Pion\Laravel\ChunkUpload\Handler\HandlerFactory;
+use Pion\Laravel\ChunkUpload\Receiver\FileReceiver;
 class UploadsController extends Controller
 {
     public function getUpload(){
     	return view('upload');
     }
-    public function postUpload(request $request){
-//        dd(\request()->all());
-        $time = Carbon::now();
-        if ($request->hasFile('file')) {
-            $image = $request->file('file');
-            // Getting the extension of the file
-            $extension = $image->getClientOriginalExtension();
-            // Creating the directory, for example, if the date = 18/10/2017, the directory will be 2017/10/
-            $directory = date_format($time, 'Y') . '/' . date_format($time, 'm');
-            // Creating the file name: random string followed by the day, random number and the hour
-            $filename = str_random(5).date_format($time,'d').rand(1,9).date_format($time,'h').".".$extension;
-            // This is our upload main function, storing the image in the storage that named 'public'
-            $upload_success = $image->storeAs($directory, $filename, 'public');
-            // If the upload is successful, return the name of directory/filename of the upload.
-            if ($upload_success) {
-//                $uploaded_link = asset(Storage::disk('upload')->url($upload_success));
-                return response()->json($upload_success, 200);
+ public function postUpload(Request $request) {
+        // create the file receiver
+        $receiver = new FileReceiver("file", $request, HandlerFactory::classFromRequest($request));
+        // check if the upload is success
+        if ($receiver->isUploaded()) {
+            // receive the file
+            $save = $receiver->receive();
+            // check if the upload has finished (in chunk mode it will send smaller files)
+            if ($save->isFinished()) {
+                // save the file and return any response you need
+                return $this->saveFile($save->getFile());
+            } else {
+                // we are in chunk mode, lets send the current progress
+                /** @var AbstractHandler $handler */
+                $handler = $save->handler();
+                return response()->json([
+                    "done" => $handler->getPercentageDone(),
+                ]);
             }
-            // Else, return error 400
-            else {
-                return response()->json('error', 400);
-            }
+        } else {
+            throw new UploadMissingFileException();
         }
-        return response()->json('no file to upload', 400);
-
-//        $request->file->storeAs('public',$request->file->getClientOriginalName());
     }
-     public function getTest(){
-    	 return response()->json(['name'=> 'khaled','age'=>45]);
-    	
-    	
+    /**
+     * Saves the file
+     *
+     * @param UploadedFile $file
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    protected function saveFile(UploadedFile $file)
+    {
+        $fileName = $this->createFilename($file);
+        // // Group files by mime type
+        // $mime = str_replace('/', '-', $file->getMimeType());
+        // // Group files by the date (week
+        // $dateFolder = date("Y-m-W");
+        // Build the file path
+        $filePath = "upload";
+        $finalPath = storage_path("app/".$filePath);
+        // move the file name
+        $file->move($finalPath, $fileName);
+        return response()->json([
+            'path' => $filePath,
+            'name' => $fileName
+            
+        ]);
     }
-     public function postTest(request $request){
-    	 // return response()->json(['name'=> 'khaled','age'=>45]);
-    	// $request->file->store('public');
-    	$request->file->store('public');
-    	
+    /**
+     * Create unique filename for uploaded file
+     * @param UploadedFile $file
+     * @return string
+     */
+    protected function createFilename(UploadedFile $file)
+    {
+        $extension = $file->getClientOriginalExtension();
+        $filename = str_replace(".".$extension, "", $file->getClientOriginalName()); // Filename without extension
+        // Add timestamp hash to name of the file
+        $filename .= "_" . md5(time()) . "." . $extension;
+        return $filename;
     }
+   
 }
