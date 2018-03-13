@@ -14,7 +14,7 @@
   <div class="progress-bar" role="progressbar" style="width: 0%;"  aria-valuemin="0" aria-valuemax="100" id="prog"></div>
 </div>
 <div id="spin" style="display:none">
-<i class="fa fa-spinner fa-spin" style="font-size:11pt"></i><span style="font-size: 8pt;color: rgb(178,178,178)">     Saving into the server...</span>
+<i class="fa fa-spinner fa-spin" style="font-size:11pt"></i><span style="font-size: 8pt;color: rgb(178,178,178)">     Processing-please wait, it takes a while...</span>
 </div>
 <div class="alert alert-success" style="display: none" id="msg" style="text-align: center">
   <strong>Success!</strong> You have uploaded the file successfully

@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Finder\Finder;
+use Log;
 
 class UploadsController extends Controller
 {
@@ -50,28 +52,46 @@ class UploadsController extends Controller
      */
     protected function saveFile(UploadedFile $file)
     {
-        $zip = new Zipper;
+        $gradlepath=NULL;
+        $success=false;
+        $finder = new Finder();
         $fileName = $file->getClientOriginalName();
-     
         $finalPath = storage_path().'/app/upload/';
-       
-        // move the file name
         $file->move($finalPath, $fileName);
-        $zip->make($finalPath.$fileName)->extractTo($finalPath.'/'.pathinfo($fileName, PATHINFO_FILENAME));
-        // $exist = Storage::disk('local')->exists('/upload/'.$fileName);
-        // if($exist){
-        //    Storage::delete('/upload/'.$fileName); 
-        // }
-       // $output=$this->compileProject();
 
+        $this->extractProject($finalPath,$fileName);
+        
+        Storage::delete('/upload/'.$fileName); // delete uploaded Zip file
         
         
-        
+         $finder->files()->name('gradlew.bat')->in($finalPath.'/'.pathinfo($fileName, PATHINFO_FILENAME));
+         
+         foreach ($finder as $file) {
+            $gradlepath= $file->getRealPath() ;
+         }
+
+         if($gradlepath != NULL){//compiling
+
+            $gradlepath=str_replace("gradlew.bat","",$gradlepath);
+            $pathToLocalProperties=str_replace(storage_path().'\app',"",$gradlepath.'/local.properties');
+            Storage::delete($pathToLocalProperties);
+            File::copy(storage_path().'\app\for_SDK\local.properties', $gradlepath.'/local.properties');
+            $success=chdir($gradlepath);
+            $out = exec('gradlew assembleDebug');
+
+         }
+
         return response()->json([
-            'path' => $finalPath,
-            'name' => $fileName,
-            'exist' => $output
+            'path' => $pathToLocalProperties,
+            
         ]);
+    }
+
+
+     protected function extractProject($finalPath,$fileName){
+        $zip = new Zipper;
+        $zip->make($finalPath.$fileName)->extractTo($finalPath.'/'.pathinfo($fileName, PATHINFO_FILENAME));
+        $zip->close();
     }
     protected function compileProject(){
         
