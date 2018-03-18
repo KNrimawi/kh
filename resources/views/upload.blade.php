@@ -16,8 +16,11 @@
 <div id="spin" style="display:none">
 <i class="fa fa-spinner fa-spin" style="font-size:11pt"></i><span style="font-size: 8pt;color: rgb(178,178,178)">     Processing-please wait, it takes a while...</span>
 </div>
-<div class="alert alert-success" style="display: none" id="msg" style="text-align: center">
-  <strong>Success!</strong> You have uploaded the file successfully
+<div class="alert alert-success" style="display: none" id="success" style="text-align: center">
+  <strong>Success!</strong> You have uploaded the file successfully.
+</div>
+<div class="alert alert-danger" style="display: none" id="fail" style="text-align: center">
+  <strong>Failed!</strong> Please make sure you have uploaded an Android project.
 </div>
 </div>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
@@ -38,8 +41,18 @@ $(function () {
          maxChunkSize: 10000000, 
         maxFileSize: 1000000 * 10000,
         done: function (e, data) {
+         
           $('#spin').css('display','none');
-           $('#msg').css('display','block');
+           if(data.result.status == "success")
+            $('#success').css('display','block');
+           else if(data.result.status == "Afalse")
+            $('#fail').css('display','block');
+           else if(data.result.status == "Zfalse"){
+            $('#fail').html('<strong>Failed!</strong> The file you uploaded is not a Zip file.')
+            $('#fail').css('display','block');
+           }
+            
+           
   
         },
         progress:function (e, data) {
