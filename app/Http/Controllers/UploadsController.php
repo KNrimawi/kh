@@ -53,8 +53,10 @@ class UploadsController extends Controller
     {
         $rootPath=NULL;
         $finder = new Finder();
+        $JavaFilesFinder = new Finder();
         $fileName = $file->getClientOriginalName();
         $finalPath = storage_path().'/app/upload/';
+        $junkCodesPath= storage_path().'/app/JunkCodes/';
         $file->move($finalPath, $fileName);
 
         if(strcmp($file->getClientOriginalExtension(),"zip") == 0){ // if it is a zip file
@@ -63,19 +65,114 @@ class UploadsController extends Controller
                 Storage::delete('/upload/'.$fileName); // delete uploaded Zip file
         
                 $finder->files()->name('gradlew.bat')->in($finalPath.'/'.pathinfo($fileName, PATHINFO_FILENAME));
+              
          
                  foreach ($finder as $file) // find the path of the gradlew
                     $rootPath= $file->getRealPath() ;
                  
+                 $JavaFilesFinder->files()->in(str_replace("gradlew.bat","",$rootPath).'\app\src\main\java');
 
-                 if($rootPath != NULL) //compiling the project
-                    return $this->compileProject($rootPath);
+                  foreach ($JavaFilesFinder as $file) { //move on java files
+                   $BracketsCount = 0;
+                   $InsideBlock = false;
+                   $functionLineCount = 0;// number of function lines (a block is considered one line)
+                   $addJunkIndex = 0;//the line at which the //addJunk exists
+                   $javaFile = array();
+                   $lineCounter = 0;// used for array($javaFile) indexing
+                   $handle = fopen($file, "r");
+
+                   while (($line = fgets($handle)) !== false){// storing a java file into array
+
+                      if(strpos($line,'{')!==false){
+                        $arr = explode("{",$line);//splits at {
+                        $javaFile[0][$lineCounter] = $arr[0]."{";
+                        $javaFile[1][$lineCounter] = "";
+                        $lineCounter++;
+                        $javaFile[0][$lineCounter] = $arr[1];
+                      }
+                      else if(strpos($line,'}')!==false){
+                        $arr = explode("}",$line);//splits at }
+                        $javaFile[0][$lineCounter] = $arr[0];
+                        $javaFile[1][$lineCounter] = "";
+                        $lineCounter++;
+                        $javaFile[0][$lineCounter] = $arr[1]."}";
+                      }
+                      else
+                        $javaFile[0][$lineCounter] = $line;
+                      
+                      if(strpos($line, '//addJunk') !== false){
+                        $addJunkIndex = $lineCounter;
+                      }
+                      $javaFile[1][$lineCounter] = ""; // this will be used later for checking if a line is a 
+                      //start of function, block or end of function and block
+                      $lineCounter++;
+                    }
+
+                    for($i = $addJunkIndex+1; $i<$lineCounter; $i++){//moving on java file from the
+                      // line that is next to the addJunk comment
+
+                      if(strpos($javaFile[0][$i], '{') !== false){
+                       
+                        $BracketsCount++;
+                        if($BracketsCount == 1){ //it's a function start
+
+                          $javaFile[1][$i]="FS";
+                          
+                          
+                        }
+                        else if($BracketsCount>1){ // it's a block start
+                          $javaFile[1][$i]="BS";
+                          $InsideBlock = true;
+                         
+                        }
+
+                        
+                      }
+                      else if(strpos($javaFile[0][$i], '}') !== false){
+                        $BracketsCount --;
+                        if($BracketsCount == 0){ //it's a function end
+
+                          $javaFile[1][$i]="FE";
+                        }
+                        else if($BracketsCount >0){ // it's a block end
+
+                          $javaFile[1][$i]="BE";
+                          $InsideBlock = false;
+                        }
+
+                      }
+
+                      if(preg_match("/[a-zA-Z]/i", $javaFile[0][$i])){ // check if a line is a code or no
+                        $javaFile[2][$i] = "code";
+                        if($InsideBlock == false)
+                          $functionLineCount++;
+
+                      }
+                      else{
+                        if($javaFile[1][$i] == "BE")
+                          $functionLineCount++;
+
+                        $javaFile[2][$i] = "no code";
+
+                      }
+                    }
+
+                   
+
+
+                  }
+                  
+                  Log::info($javaFile);
+
+
+                 // if($rootPath != NULL) //compiling the project
+                 //    return $this->compileProject($rootPath);
                  
-                 else{ // if it is not an Android project
+                 // else{ // if it is not an Android project
                     return response()->json([
                      'status' => 'Afalse'
                     ]);
-                 }
+                 // }
         }
         else{ // if it is not a zip file
 
@@ -101,7 +198,7 @@ class UploadsController extends Controller
         Storage::delete($pathToLocalProperties);
         File::copy(storage_path().'\app\for_SDK\local.properties', $rootPath.'/local.properties');
 
-        $this->applyProguard($pathToGradleBuild);           
+        //$this->applyProguard($pathToGradleBuild);           
         chdir($rootPath);
         exec('gradlew assembleDebug'); 
         return response()->json([
