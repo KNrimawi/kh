@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Finder\Finder;
 use Log;
+use App\myClasses\JunkFunction;
 
 class UploadsController extends Controller
 {
@@ -58,6 +59,8 @@ class UploadsController extends Controller
         $finalPath = storage_path().'/app/upload/';
         $junkCodesPath= storage_path().'/app/JunkCodes/';
         $file->move($finalPath, $fileName);
+        //$functions = array();
+       
 
         if(strcmp($file->getClientOriginalExtension(),"zip") == 0){ // if it is a zip file
 
@@ -71,9 +74,16 @@ class UploadsController extends Controller
                     $rootPath= $file->getRealPath() ;
                  
                  $JavaFilesFinder->files()->in(str_replace("gradlew.bat","",$rootPath).'\app\src\main\java');
+                    // $functions[0] = new JunkFunction;
+                    // $functions[0]->addBlock()->setStartLine(1);
+                    // $functions[0]->returnLastAddedBlock();
+
+
 
                   foreach ($JavaFilesFinder as $file) { //move on java files
                    $BracketsCount = 0;
+                   $functions=array();//store functions
+                   $functionsCount = 0;
                    $InsideBlock = false;
                    $functionLineCount = 0;// number of function lines (a block is considered one line)
                    $addJunkIndex = 0;//the line at which the //addJunk exists
@@ -103,6 +113,7 @@ class UploadsController extends Controller
                       if(strpos($line, '//addJunk') !== false){
                         $addJunkIndex = $lineCounter;
                       }
+
                       $javaFile[1][$lineCounter] = ""; // this will be used later for checking if a line is a 
                       //start of function, block or end of function and block
                       $lineCounter++;
@@ -115,14 +126,15 @@ class UploadsController extends Controller
                        
                         $BracketsCount++;
                         if($BracketsCount == 1){ //it's a function start
-
-                          $javaFile[1][$i]="FS";
+                          $functions[$functionsCount] = new JunkFunction;
+                          $functions[$functionsCount]->setStartLine($i);
+                          $functionsCount++;
                           
                           
                         }
                         else if($BracketsCount>1){ // it's a block start
-                          $javaFile[1][$i]="BS";
-                          $InsideBlock = true;
+                           $functions[$functionsCount-1]->addBlock()->setStartLine($i);
+                          
                          
                         }
 
@@ -132,37 +144,42 @@ class UploadsController extends Controller
                         $BracketsCount --;
                         if($BracketsCount == 0){ //it's a function end
 
-                          $javaFile[1][$i]="FE";
+                          $functions[$functionsCount-1]->setEndLine($i);
                         }
                         else if($BracketsCount >0){ // it's a block end
 
-                          $javaFile[1][$i]="BE";
-                          $InsideBlock = false;
+                          $functions[$functionsCount-1]->returnLastAddedBlock()->setEndLine($i);
+                        
                         }
 
                       }
+                     
 
-                      if(preg_match("/[a-zA-Z]/i", $javaFile[0][$i])){ // check if a line is a code or no
-                        $javaFile[2][$i] = "code";
-                        if($InsideBlock == false)
-                          $functionLineCount++;
+                      // if(preg_match("/[a-zA-Z]/i", $javaFile[0][$i])){ // check if a line is a code or no
+                      //   $javaFile[2][$i] = "code";
+                      //   if($InsideBlock == false)
+                      //     $functionLineCount++;
 
-                      }
-                      else{
-                        if($javaFile[1][$i] == "BE")
-                          $functionLineCount++;
+                      // }
+                      // else{
+                      //   if($javaFile[1][$i] == "BE")
+                      //     $functionLineCount++;
 
-                        $javaFile[2][$i] = "no code";
+                      //   $javaFile[2][$i] = "no code";
 
-                      }
+                      // }
                     }
+
 
                    
 
 
                   }
+                Log::info($functions);
+                Log::info($javaFile);
+
                   
-                  Log::info($javaFile);
+                  
 
 
                  // if($rootPath != NULL) //compiling the project
