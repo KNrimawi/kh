@@ -82,9 +82,8 @@ class UploadsController extends Controller
 
                   foreach ($JavaFilesFinder as $file) { //move on java files
                    $BracketsCount = 0;
-                   $functions=array();//store functions
+                   $functions=array();//store functions which junk codes will be added to them
                    $functionsCount = 0;
-                   $InsideBlock = false;
                    $functionLineCount = 0;// number of function lines (a block is considered one line)
                    $addJunkIndex = 0;//the line at which the //addJunk exists
                    $javaFile = array();
@@ -95,34 +94,33 @@ class UploadsController extends Controller
 
                       if(strpos($line,'{')!==false){
                         $arr = explode("{",$line);//splits at {
-                        $javaFile[0][$lineCounter] = $arr[0]."{";
-                        $javaFile[1][$lineCounter] = "";
+                        $javaFile[$lineCounter] = $arr[0]."{";
+                        
                         $lineCounter++;
-                        $javaFile[0][$lineCounter] = $arr[1];
+                        $javaFile[$lineCounter] = $arr[1];
                       }
                       else if(strpos($line,'}')!==false){
                         $arr = explode("}",$line);//splits at }
-                        $javaFile[0][$lineCounter] = $arr[0];
-                        $javaFile[1][$lineCounter] = "";
+                        $javaFile[$lineCounter] = $arr[0];
+                        
                         $lineCounter++;
-                        $javaFile[0][$lineCounter] = $arr[1]."}";
+                        $javaFile[$lineCounter] = $arr[1]."}";
                       }
                       else
-                        $javaFile[0][$lineCounter] = $line;
+                        $javaFile[$lineCounter] = $line;
                       
                       if(strpos($line, '//addJunk') !== false){
                         $addJunkIndex = $lineCounter;
                       }
 
-                      $javaFile[1][$lineCounter] = ""; // this will be used later for checking if a line is a 
-                      //start of function, block or end of function and block
+                     
                       $lineCounter++;
                     }
 
                     for($i = $addJunkIndex+1; $i<$lineCounter; $i++){//moving on java file from the
                       // line that is next to the addJunk comment
 
-                      if(strpos($javaFile[0][$i], '{') !== false){
+                      if(strpos($javaFile[$i], '{') !== false){
                        
                         $BracketsCount++;
                         if($BracketsCount == 1){ //it's a function start
@@ -140,7 +138,7 @@ class UploadsController extends Controller
 
                         
                       }
-                      else if(strpos($javaFile[0][$i], '}') !== false){
+                      else if(strpos($javaFile[$i], '}') !== false){
                         $BracketsCount --;
                         if($BracketsCount == 0){ //it's a function end
 
@@ -154,29 +152,30 @@ class UploadsController extends Controller
 
                       }
                      
-
-                      // if(preg_match("/[a-zA-Z]/i", $javaFile[0][$i])){ // check if a line is a code or no
-                      //   $javaFile[2][$i] = "code";
-                      //   if($InsideBlock == false)
-                      //     $functionLineCount++;
-
-                      // }
-                      // else{
-                      //   if($javaFile[1][$i] == "BE")
-                      //     $functionLineCount++;
-
-                      //   $javaFile[2][$i] = "no code";
-
-                      // }
                     }
+                      $blocksRanges = $functions[0]->getBlocksRanges(); 
+                      //get indicies of the lines that contains code
+                    for($i = $functions[0]->getStartLine()+1;$i<$functions[0]->getEndLine();$i++){
 
+                      $InsideBlock = false;
+                      for($j = 0;$j<sizeof($blocksRanges);$j++){
 
+                          if($i>=$blocksRanges[$j][0]&&$i<=$blocksRanges[$j][1])
+                            $InsideBlock = true;
+                      }
+                      if(!$InsideBlock&&preg_match("/[a-zA-Z]/i", $javaFile[$i]))
+                        $functions[0]->insertLineIndex($i);
+
+                    }
+                    Log::info($functions[0]->getNumberOfLines());
+                    Log::info($javaFile);
+
+                   
                    
 
 
                   }
-                Log::info($functions);
-                Log::info($javaFile);
+                
 
                   
                   

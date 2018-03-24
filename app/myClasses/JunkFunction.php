@@ -7,9 +7,16 @@ private $startLine;
 private $endLine;
 private $blocks;
 private $blockCount;
+private $linesIndicies;
+private $numberOfLines;
+private $blocksRanges;
 public function __construct(){
 	$this->blocks = array();
 	$this->blockCount = 0;
+	$this->numberOfPieces = 0;
+	$this->blocksRanges = array();
+	$this->linesIndicies = array();
+	$this->numberOfLines = 0;
 }
 public function setStartLine($startLine){
 	$this->startLine = $startLine;
@@ -33,7 +40,26 @@ public function addBlock(){
 public function returnLastAddedBlock(){
 	return $this->blocks[$this->blockCount-1];
 }
+public function getBlocksRanges(){
+	if(sizeof($this->blocks) ==0)
+		return NULL;
+	else
+	{
+		for($i = 0;$i<sizeof($this->blocks);$i++){
 
+			$this->blocksRanges[$i][0] = $this->blocks[$i]->getStartLine();
+			$this->blocksRanges[$i][1] = $this->blocks[$i]->getEndLine();
+		}
+	}
+	return $this->blocksRanges;
+}
+public function insertLineIndex($index){
+	$this->linesIndicies[$this->numberOfLines] = $index;
+	$this->numberOfLines++;
+}
+public function getNumberOfLines(){
+	return $this->linesIndicies;
+}
 }
 
 ?>
