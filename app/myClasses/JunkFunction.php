@@ -10,6 +10,7 @@ private $blockCount;
 private $linesIndicies;
 private $numberOfLines;
 private $blocksRanges;
+
 public function __construct(){
 	$this->blocks = array();
 	$this->blockCount = 0;
@@ -57,9 +58,21 @@ public function insertLineIndex($index){
 	$this->linesIndicies[$this->numberOfLines] = $index;
 	$this->numberOfLines++;
 }
-public function getNumberOfLines(){
+public function getLinesIndicies(){
 	return $this->linesIndicies;
 }
+public function getNumberOfBlocksAndLines(){
+	return (sizeof($this->blocks)+sizeof($this->linesIndicies));
+}
+public function getBlocksAndLinesIndicies(){
+	$getLinesAndBlocks = array();
+	for($i = 0;$i<sizeof($this->linesIndicies);$i++)
+		array_push($getLinesAndBlocks,$this->linesIndicies[$i]);
+	for($i = 0;$i<sizeof($this->blocksRanges);$i++)
+		array_push($getLinesAndBlocks,$this->blocksRanges[$i][0]);
+	return $getLinesAndBlocks;
+}
+
 }
 
 ?>

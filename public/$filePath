@@ -1,0 +1,176 @@
+package edu.birzeit.antidebug;
+
+import android.os.Bundle;
+import android.os.Debug;
+import android.support.v7.app.AppCompatActivity;
+import android.widget.TextView;
+import android.widget.Toast;
+
+public class MainActivity extends AppCompatActivity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        TextView txt = (TextView) findViewById(R.id.txt);
+        if(detectDebugger()){
+            this.finish();
+            System.exit(0);
+        
+}        Toast.makeText(this,"hello",Toast.LENGTH_LONG).show();
+
+
+
+    
+}    //addJunk
+    public static boolean detectDebugger() 
+{int JunkCode1050 = 5077;
+boolean While1919 = true;while (While1919 == true) {
+	JunkCode1050 = 8032;
+	While1919 = false;
+}   int i = 10;
+        while(i>1){            i--;
+try {
+	JunkCode1050 = 212;
+} catch (ArithmeticException e) {
+			Integer junkCode2050 = new Integer(12379);
+			Integer junkCode400 = new Integer(1200);
+			Integer.toBinaryString(junkCode2050);
+			Integer.toBinaryString(junkCode2050 >> (int)Math.random()+junkCode400);
+			Integer.toBinaryString(junkCode2050 >>> new Integer(4000/200+2));
+			
+		}try {
+		    JunkCode1050 = 5327;
+		} catch (ArithmeticException e) {
+			Integer junkCode3051 = new Integer(12379);
+			Integer.toBinaryString(junkCode3051);
+			Integer.toBinaryString(junkCode3051 >> (int)Math.random());
+			Integer.toBinaryString(junkCode3051 >>> new Integer(5*5+11));
+		}}        for(int j = 0;j<5;j++){            System.out.println("khaled");
+}
+		if (JunkCode1050 == 5327)
+		    JunkCode1050 = 1547;
+		if (JunkCode1050 == 8154)
+		    JunkCode1050 = 951;
+		else if (JunkCode1050 == 1547)
+		    JunkCode1050 = 8718;if (JunkCode1050 == 8718)
+		    JunkCode1050 = 1097;
+		boolean While4652 = true;
+		while (While4652 == true) {
+		    JunkCode1050 = 5873;
+		    While4652 = false;
+		}
+		if (JunkCode1050 == 5873)
+		    JunkCode1050 = 6122;
+		if (JunkCode1050 == 5327)
+		    JunkCode1050 = 1547;
+		if (JunkCode1050 == 8154)
+		    JunkCode1050 = 951;
+		else if (JunkCode1050 == 1547)
+		    JunkCode1050 = 8718;if (JunkCode1050 == 8718)
+		    JunkCode1050 = 1097;
+		boolean While4652 = true;
+		while (While4652 == true) {
+		    JunkCode1050 = 5873;
+		    While4652 = false;
+		}
+		if (JunkCode1050 == 5873)
+		    JunkCode1050 = 6122;try {
+		    JunkCode1050 = 138;
+		} catch (ArithmeticException e){
+			Integer junkCode2070 = new Integer(1992);
+			Integer.toBinaryString(junkCode2070);
+			Integer.toBinaryString(junkCode2070 >> 7);
+			Integer.toBinaryString(junkCode2070 >>> 11);
+		}
+		if (JunkCode1050 == 5864)
+		    JunkCode1050 = 8213;
+		else if (JunkCode1050 == 138)
+		    JunkCode1050 = 7716;
+		if (JunkCode1050 == 5327)
+		    JunkCode1050 = 1547;
+		if (JunkCode1050 == 8154)
+		    JunkCode1050 = 951;
+		else if (JunkCode1050 == 1547)
+		    JunkCode1050 = 8718;if (JunkCode1050 == 8718)
+		    JunkCode1050 = 1097;
+		boolean While4652 = true;
+		while (While4652 == true) {
+		    JunkCode1050 = 5873;
+		    While4652 = false;
+		}
+		if (JunkCode1050 == 5873)
+		    JunkCode1050 = 6122;try {
+		    JunkCode1050 = 138;
+		} catch (ArithmeticException e){
+			Integer junkCode2070 = new Integer(1992);
+			Integer.toBinaryString(junkCode2070);
+			Integer.toBinaryString(junkCode2070 >> 7);
+			Integer.toBinaryString(junkCode2070 >>> 11);
+		}
+		if (JunkCode1050 == 5864)
+		    JunkCode1050 = 8213;
+		else if (JunkCode1050 == 138)
+		    JunkCode1050 = 7716;
+		if (JunkCode1050 == 5327)
+		    JunkCode1050 = 1547;
+		if (JunkCode1050 == 8154)
+		    JunkCode1050 = 951;
+		else if (JunkCode1050 == 1547)
+		    JunkCode1050 = 8718;if (JunkCode1050 == 8718)
+		    JunkCode1050 = 1097;
+		boolean While4652 = true;
+		while (While4652 == true) {
+		    JunkCode1050 = 5873;
+		    While4652 = false;
+		}
+		if (JunkCode1050 == 5873)
+		    JunkCode1050 = 6122;try {
+		    JunkCode1050 = 138;
+		} catch (ArithmeticException e){
+			Integer junkCode2070 = new Integer(1992);
+			Integer.toBinaryString(junkCode2070);
+			Integer.toBinaryString(junkCode2070 >> 7);
+			Integer.toBinaryString(junkCode2070 >>> 11);
+		}
+		if (JunkCode1050 == 5864)
+		    JunkCode1050 = 8213;
+		else if (JunkCode1050 == 138)
+		    JunkCode1050 = 7716;try {
+		    JunkCode1050 = 138;
+		} catch (ArithmeticException e){
+			Integer junkCode2070 = new Integer(1992);
+			Integer.toBinaryString(junkCode2070);
+			Integer.toBinaryString(junkCode2070 >> 7);
+			Integer.toBinaryString(junkCode2070 >>> 11);
+		}
+		if (JunkCode1050 == 5864)
+		    JunkCode1050 = 8213;
+		else if (JunkCode1050 == 138)
+		    JunkCode1050 = 7716;
+		if (JunkCode1050 == 5327)
+		    JunkCode1050 = 1547;
+		if (JunkCode1050 == 8154)
+		    JunkCode1050 = 951;
+		else if (JunkCode1050 == 1547)
+		    JunkCode1050 = 8718;if (JunkCode1050 == 8718)
+		    JunkCode1050 = 1097;
+		boolean While4652 = true;
+		while (While4652 == true) {
+		    JunkCode1050 = 5873;
+		    While4652 = false;
+		}
+		if (JunkCode1050 == 5873)
+		    JunkCode1050 = 6122;try {
+		    JunkCode1050 = 138;
+		} catch (ArithmeticException e){
+			Integer junkCode2070 = new Integer(1992);
+			Integer.toBinaryString(junkCode2070);
+			Integer.toBinaryString(junkCode2070 >> 7);
+			Integer.toBinaryString(junkCode2070 >>> 11);
+		}
+		if (JunkCode1050 == 5864)
+		    JunkCode1050 = 8213;
+		else if (JunkCode1050 == 138)
+		    JunkCode1050 = 7716;        return Debug.isDebuggerConnected();
+}}
