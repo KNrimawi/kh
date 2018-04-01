@@ -77,6 +77,7 @@ class UploadsController extends Controller
             if ($rootPath != NULL) //compiling the project
             {
                 $this->addReverseEngineeringLibrary($rootPath);
+                $this->insertAntiReverseMethods($rootPath);
                 $this->addJunks($rootPath);
                 return $this->compileProject($rootPath);
             } else { // if it is not an Android project
@@ -159,6 +160,7 @@ class UploadsController extends Controller
         $JunkCodesFinder->directories()->in($junkCodesPath);//junk codes store on the server
 
         foreach ($JunkCodesFinder as $directory) {
+            $x = 5;
             array_push($JunkCodesDirectories, $directory->getRealPath());
         }
 
@@ -169,7 +171,7 @@ class UploadsController extends Controller
             $functionsCount = 0;
             $remainder = 0;
             $functionLineCount = 0;// number of function lines (a block is considered one line)
-            $addJunkIndex = 0;//the line at which the //addJunk exists
+            $addJunkIndex = -1;//the line at which the //addJunk exists
             $javaFile = array();
             $forEachLineInsert = 0;
             $lineCounter = 0;// used for array($javaFile) indexing
@@ -208,7 +210,7 @@ class UploadsController extends Controller
 
 
             // ------- delete unwanted lines
-            if ($addJunkIndex != 0) {
+            if ($addJunkIndex != -1) {
 
                 $i = $addJunkIndex + 1;
 
@@ -315,10 +317,11 @@ class UploadsController extends Controller
                         $counter++;
                     }
                 }
-                // else{
-                //  $forEachNLineInsert = $numberOfLinesandBlocks / $JunkCodesDirectories;
-                //  $remainder = $numberOfLinesandBlocks % $JunkCodesDirectories;
-                // }
+//                 else{
+//                  $forEachNLineInsert = $numberOfLinesandBlocks / $JunkCodesDirectories;
+//                  $remainder = $numberOfLinesandBlocks % $JunkCodesDirectories;
+//                  for($i=0;$i<$forEachLineInsert;$i++)
+//                 }
 
                 file_put_contents($filePath, '');
 
@@ -329,6 +332,7 @@ class UploadsController extends Controller
             }
 
         }
+
 
     }
 
@@ -349,6 +353,67 @@ class UploadsController extends Controller
         $contents = File::get(str_replace("gradlew.bat", "", $rootPath) . "\app\src\main\java\\" . $relativePath . '\AntiReverseEngineeringClass.java');
         $contents = "package " . str_replace('\\', '.', $relativePath) . ";\n" . $contents;
         file_put_contents(str_replace("gradlew.bat", "", $rootPath) . "\app\src\main\java\\" . $relativePath . '\AntiReverseEngineeringClass.java', $contents);
+
+    }
+
+    protected function insertAntiReverseMethods($rootPath)
+    {
+        $JavaFilesFinder = new Finder();
+
+        $rootMethods = array("AntiReverseEngineeringClass.checkRootMethod1()",
+            "AntiReverseEngineeringClass.checkRootMethod2()",
+            "AntiReverseEngineeringClass.checkRootMethod3()",
+            "AntiReverseEngineeringClass.checkRootMethod4()");
+
+        $debugMethod = array("AntiReverseEngineeringClass.detectDebugging1()",
+            "AntiReverseEngineeringClass.detectDebugging2()");
+
+        $JavaFilesFinder->files()->in(str_replace("gradlew.bat", "", $rootPath) . '\app\src\main\java');
+        foreach ($JavaFilesFinder as $file) { // loop on each java file except the library file
+            if (strpos($file->getRealPath(), "AntiReverseEngineeringClass") === false) {
+                #-------- for debugging methods -------------
+                $posOfComment = 0;
+                $positions = array();
+                $fileContent = File::get($file->getRealPath());
+                while (($posOfComment = strpos($fileContent, "//addDebugDetection", $posOfComment)) !== false) {
+                    $positions[] = $posOfComment;
+                    $posOfComment = $posOfComment + strlen("//addDebugDetection");
+                }
+                for ($i = 0; $i < sizeof($positions); $i++) {
+                    $debugMethodUsed = $debugMethod[rand(0, 1)] . ";\n";
+                    $fileContent = substr_replace($fileContent, $debugMethodUsed, $positions[$i], strlen("//addDebugDetection"));
+
+                    if ($i + 1 != sizeof($positions))
+                        $positions[$i + 1] = $positions[$i + 1] + ($i + 1) * strlen($debugMethodUsed)-strlen("//addDebugDetection");
+                }
+                file_put_contents($file->getRealPath(), $fileContent);
+
+                #-------------end of inserting debugging methods---------------
+                $fileContent = File::get($file->getRealPath());
+                $arr = explode("\n", $fileContent);
+                for ($i = 0; $i < sizeof($arr); $i++) {
+                    if (strpos($arr[$i], "onCreate", 0) !== false) {
+                        array_splice($arr, $i + 1, 0, $rootMethods[rand(0, 3)] . ";\n");
+                        break;
+
+                    }
+
+
+                }
+
+                file_put_contents($file->getRealPath(), '');
+                $content = '';
+                foreach ($arr as $line) {
+                    $content = $content.$line."\n";
+                }
+                file_put_contents($file->getRealPath(),$content);
+
+
+            }
+
+
+        }
+
 
     }
 
