@@ -166,14 +166,11 @@ class UploadsController extends Controller
 
         foreach ($JavaFilesFinder as $file) { //move on java files
 
-            $BracketsCount = 0;
+
             $functions = array();//store functions which junk codes will be added to them
             $functionsCount = 0;
-            $remainder = 0;
-            $functionLineCount = 0;// number of function lines (a block is considered one line)
-            $addJunkIndex = -1;//the line at which the //addJunk exists
+            $addJunkIndex = array();//the line at which the //addJunk exists
             $javaFile = array();
-            $forEachLineInsert = 0;
             $lineCounter = 0;// used for array($javaFile) indexing
             $filePath = $file->getRealPath();
             $handle = fopen($file, "r");
@@ -184,7 +181,6 @@ class UploadsController extends Controller
                 if (strpos($line, '{') !== false) {
                     $arr = explode("{", $line);//splits at {
                     $javaFile[$lineCounter] = $arr[0];
-
                     $lineCounter++;
                     $javaFile[$lineCounter] = "{";
                     $lineCounter++;
@@ -194,135 +190,145 @@ class UploadsController extends Controller
                     $arr = explode("}", $line);//splits at }
                     $javaFile[$lineCounter] = $arr[0];
                     $lineCounter++;
-                    $javaFile[$lineCounter] = $arr[1];
-                    $lineCounter++;
                     $javaFile[$lineCounter] = "}";
+                    $lineCounter++;
+                    $javaFile[$lineCounter] = $arr[1];
                 } else
                     $javaFile[$lineCounter] = $line;
-
-                if (strpos($line, '//addJunk') !== false) {
-                    $addJunkIndex = $lineCounter;
-                }
-
 
                 $lineCounter++;
             }
 
+            $i = 0;
+            while ($i < $lineCounter) {
 
-            // ------- delete unwanted lines
-            if ($addJunkIndex != -1) {
+                if (strpos($javaFile[$i], '}') === false &&
+                    strpos($javaFile[$i], '{') === false &&
+                    strpos($javaFile[$i], '(') === false &&
+                    strpos($javaFile[$i], ')') === false &&
+                    strpos($javaFile[$i], ';') === false &&
+                    !preg_match("/[a-zA-Z]/i", $javaFile[$i])) {
+                    array_splice($javaFile, $i, 1);
+                    $lineCounter--;
+                } else
+                    $i++;
 
-                $i = $addJunkIndex + 1;
+            }
+            for ($i = 0; $i < count($javaFile); $i++) {
+                if (strpos($javaFile[$i], '//addJunk') !== false) {
 
-                while ($i < $lineCounter) {
-
-                    if (strpos($javaFile[$i], '}') === false &&
-                        strpos($javaFile[$i], '{') === false &&
-                        strpos($javaFile[$i], '(') === false &&
-                        strpos($javaFile[$i], ')') === false &&
-                        strpos($javaFile[$i], ';') === false &&
-                        !preg_match("/[a-zA-Z]/i", $javaFile[$i])) {
-                        array_splice($javaFile, $i, 1);
-                        $lineCounter--;
-                    } else
-                        $i++;
-
+                    array_push($addJunkIndex, $i);
                 }
+            }
 
-                for ($i = $addJunkIndex + 1; $i < $lineCounter; $i++) {//moving on java file from the
-                    // line that is next to the addJunk comment
 
-                    if (strpos($javaFile[$i], '{') !== false) {
+            if (count($addJunkIndex) != 0) {
 
-                        $BracketsCount++;
 
-                        if ($BracketsCount == 1) { //it's a function start
-                            $functions[$functionsCount] = new JunkFunction;
-                            $functions[$functionsCount]->setStartLine($i);
-                            $functionsCount++;
-                        } else if ($BracketsCount > 1) { // it's a block start
-                            $functions[$functionsCount - 1]->addBlock()->setStartLine($i - 1);
+                for ($index = 0; $index < count($addJunkIndex); $index++) {//move on //addjunk indecies
+
+                    $BracketsCount = 0;
+                    $endOfFunction = false;
+                    $ind = $addJunkIndex[$index] + 1;
+                    while (!$endOfFunction) {
+
+                        if (strpos($javaFile[$ind], '{') !== false) {
+
+                            $BracketsCount++;
+
+                            if ($BracketsCount == 1) { //it's a function start
+                                $functions[$functionsCount] = new JunkFunction;
+                                $functions[$functionsCount]->setStartLine($ind);
+                                $functionsCount++;
+                            } else if ($BracketsCount > 1) { // it's a block start
+                                $functions[$functionsCount - 1]->addBlock()->setStartLine($ind - 1);
+                            }
+                        } else if (strpos($javaFile[$ind], '}') !== false) {
+                            $BracketsCount--;
+                            if ($BracketsCount == 0) { //it's a function end
+
+                                $functions[$functionsCount - 1]->setEndLine($ind);
+                                $endOfFunction = true;
+                            } else if ($BracketsCount > 0) { // it's a block end
+
+                                $functions[$functionsCount - 1]->returnLastAddedBlock()->setEndLine($ind);
+
+                            }
+
                         }
-                    } else if (strpos($javaFile[$i], '}') !== false) {
-                        $BracketsCount--;
-                        if ($BracketsCount == 0) { //it's a function end
-
-                            $functions[$functionsCount - 1]->setEndLine($i);
-                        } else if ($BracketsCount > 0) { // it's a block end
-
-                            $functions[$functionsCount - 1]->returnLastAddedBlock()->setEndLine($i);
-
-                        }
-
+                        $ind++;
                     }
 
-                }
 
-                $blocksRanges = $functions[$functionsCount - 1]->getBlocksRanges();
-                //get indicies of the lines that contains code
-                for ($i = $functions[$functionsCount - 1]->getStartLine() + 1; $i < $functions[$functionsCount - 1]->getEndLine(); $i++) {
+                    $blocksRanges = $functions[$functionsCount - 1]->getBlocksRanges();
+                    //get indicies of the lines that contains code
+                    for ($i = $functions[$functionsCount - 1]->getStartLine() + 1; $i < $functions[$functionsCount - 1]->getEndLine(); $i++) {
 
-                    $InsideBlock = false;
+                        $InsideBlock = false;
 
-                    for ($j = 0; $j < sizeof($blocksRanges); $j++) {
+                        for ($j = 0; $j < count($blocksRanges); $j++) {
 
-                        if ($i >= $blocksRanges[$j][0] && $i <= $blocksRanges[$j][1])
-                            $InsideBlock = true;
-                    }
-
-                    if (!$InsideBlock && preg_match("/[a-zA-Z]/i", $javaFile[$i]))
-                        $functions[$functionsCount - 1]->insertLineIndex($i);
-
-                }
-
-
-                $numberOfLinesandBlocks = $functions[$functionsCount - 1]->getNumberOfBlocksAndLines();
-                $junkCodePieces = array();
-                $counter = 0;//to trace the original index of lines and blocks
-                $junkCodePiecesFinder = new Finder();
-                $junkCodePiecesFinder->files()->in($JunkCodesDirectories[0]);
-                /**change the index of the array to random**/
-
-                foreach ($junkCodePiecesFinder as $piece) {//saving junk code pieces
-                    array_push($junkCodePieces, $piece->getRealPath());
-                }
-
-
-                if (sizeof($junkCodePiecesFinder) > $numberOfLinesandBlocks) {// for each line or block insert N
-
-                    $forEachLineInsert = intval(sizeof($junkCodePieces) / $numberOfLinesandBlocks);
-                    $remainder = sizeof($junkCodePieces) % $numberOfLinesandBlocks;
-                    $blocksAndLinesIndicies = $functions[$functionsCount - 1]->getBlocksAndLinesIndicies();
-                    $piecesDone = 0;
-                    sort($blocksAndLinesIndicies);
-
-                    for ($i = 0; $i < $numberOfLinesandBlocks; $i++) {
-
-                        for ($j = 0; $j < $forEachLineInsert; $j++) {
-
-                            if ($piecesDone < sizeof($junkCodePieces)) {
-
-                                array_splice($javaFile, $blocksAndLinesIndicies[$i] + $counter, 0, File::get($junkCodePieces[$piecesDone]));
-                                $counter++;
-                            } else
-                                break;
-
-                            $piecesDone++;
+                            if ($i >= $blocksRanges[$j][0] && $i <= $blocksRanges[$j][1])
+                                $InsideBlock = true;
                         }
 
+                        if (!$InsideBlock && preg_match("/[a-zA-Z]/i", $javaFile[$i]))
+                            $functions[$functionsCount - 1]->insertLineIndex($i);
+
                     }
 
-                    for ($j = 0; $j < $remainder; $j++) {
-                        array_splice($javaFile, $blocksAndLinesIndicies[sizeof($blocksAndLinesIndicies) - 1] + $counter, 0, File::get($junkCodePieces[sizeof($junkCodePieces) - $remainder + $j]));
-                        $counter++;
+
+                    $numberOfLinesandBlocks = $functions[$functionsCount - 1]->getNumberOfBlocksAndLines();
+                    $junkCodePieces = array();
+                    $counter = 0;//to trace the original index of lines and blocks
+                    $junkCodePiecesFinder = new Finder();
+                    $junkCodePiecesFinder->files()->in($JunkCodesDirectories[0]);
+                    /**change the index of the array to random**/
+
+                    foreach ($junkCodePiecesFinder as $piece) {//saving junk code pieces
+                        array_push($junkCodePieces, $piece->getRealPath());
                     }
-                }
+
+
+                    if (count($junkCodePiecesFinder) > $numberOfLinesandBlocks) {// for each line or block insert N
+
+                        $forEachLineInsert = intval(count($junkCodePieces) / $numberOfLinesandBlocks);
+                        $remainder = count($junkCodePieces) % $numberOfLinesandBlocks;
+                        $blocksAndLinesIndicies = $functions[$functionsCount - 1]->getBlocksAndLinesIndicies();
+                        $piecesDone = 0;
+                        sort($blocksAndLinesIndicies);
+
+                        for ($i = 0; $i < $numberOfLinesandBlocks; $i++) {
+
+                            for ($j = 0; $j < $forEachLineInsert; $j++) {
+
+                                if ($piecesDone < count($junkCodePieces)) {
+
+                                    array_splice($javaFile, $blocksAndLinesIndicies[$i] + $counter, 0, File::get($junkCodePieces[$piecesDone]));
+                                    $counter++;
+                                } else
+                                    break;
+
+                                $piecesDone++;
+                            }
+
+                        }
+
+                        for ($j = 0; $j < $remainder; $j++) {
+                            array_splice($javaFile, $blocksAndLinesIndicies[count($blocksAndLinesIndicies) - 1] + $counter, 0, File::get($junkCodePieces[sizeof($junkCodePieces) - $remainder + $j]));
+                            $counter++;
+                        }
+                    }
+                    for ($k = $index + 1; $k < count($addJunkIndex); $k++)
+                        $addJunkIndex[$k] += $counter;
 //                 else{
 //                  $forEachNLineInsert = $numberOfLinesandBlocks / $JunkCodesDirectories;
 //                  $remainder = $numberOfLinesandBlocks % $JunkCodesDirectories;
 //                  for($i=0;$i<$forEachLineInsert;$i++)
 //                 }
 
+
+                }
                 file_put_contents($filePath, '');
 
                 foreach ($javaFile as $line) {
@@ -330,6 +336,7 @@ class UploadsController extends Controller
                 }
 
             }
+
 
         }
 
@@ -362,8 +369,7 @@ class UploadsController extends Controller
 
         $rootMethods = array("AntiReverseEngineeringClass.checkRootMethod1()",
             "AntiReverseEngineeringClass.checkRootMethod2()",
-            "AntiReverseEngineeringClass.checkRootMethod3()",
-            "AntiReverseEngineeringClass.checkRootMethod4()");
+            "AntiReverseEngineeringClass.checkRootMethod3()");
 
         $debugMethod = array("AntiReverseEngineeringClass.detectDebugging1()",
             "AntiReverseEngineeringClass.detectDebugging2()");
@@ -384,16 +390,16 @@ class UploadsController extends Controller
                     $fileContent = substr_replace($fileContent, $debugMethodUsed, $positions[$i], strlen("//addDebugDetection"));
 
                     if ($i + 1 != sizeof($positions))
-                        $positions[$i + 1] = $positions[$i + 1] + ($i + 1) * strlen($debugMethodUsed)-strlen("//addDebugDetection");
+                        $positions[$i + 1] = $positions[$i + 1] + ($i + 1) * strlen($debugMethodUsed) - strlen("//addDebugDetection");
                 }
                 file_put_contents($file->getRealPath(), $fileContent);
 
-                #-------------end of inserting debugging methods---------------
+                #-------------end of inserting debugging methods and start of inserting root methods---------------
                 $fileContent = File::get($file->getRealPath());
                 $arr = explode("\n", $fileContent);
                 for ($i = 0; $i < sizeof($arr); $i++) {
                     if (strpos($arr[$i], "onCreate", 0) !== false) {
-                        array_splice($arr, $i + 1, 0, $rootMethods[rand(0, 3)] . ";\n");
+                        array_splice($arr, $i + 1, 0, $rootMethods[rand(0, 2)] . ";\n");
                         break;
 
                     }
@@ -404,9 +410,9 @@ class UploadsController extends Controller
                 file_put_contents($file->getRealPath(), '');
                 $content = '';
                 foreach ($arr as $line) {
-                    $content = $content.$line."\n";
+                    $content = $content . $line . "\n";
                 }
-                file_put_contents($file->getRealPath(),$content);
+                file_put_contents($file->getRealPath(), $content);
 
 
             }
