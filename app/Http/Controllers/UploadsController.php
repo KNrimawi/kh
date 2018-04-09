@@ -199,6 +199,7 @@ class UploadsController extends Controller
                 $lineCounter++;
             }
 
+
             $i = 0;
             while ($i < $lineCounter) {
 
@@ -214,6 +215,7 @@ class UploadsController extends Controller
                     $i++;
 
             }
+            Log::info($javaFile);
             for ($i = 0; $i < count($javaFile); $i++) {
                 if (strpos($javaFile[$i], '//addJunk') !== false) {
 
@@ -367,12 +369,12 @@ class UploadsController extends Controller
     {
         $JavaFilesFinder = new Finder();
 
-        $rootMethods = array("AntiReverseEngineeringClass.checkRootMethod1()",
-            "AntiReverseEngineeringClass.checkRootMethod2()",
-            "AntiReverseEngineeringClass.checkRootMethod3()");
+        $rootMethods = array("AntiReverseEngineeringClass.checkRootMethod1(true)",
+            "AntiReverseEngineeringClass.checkRootMethod2(true)",
+            "AntiReverseEngineeringClass.checkRootMethod3(true)");
 
-        $debugMethod = array("AntiReverseEngineeringClass.detectDebugging1()",
-            "AntiReverseEngineeringClass.detectDebugging2()");
+        $debugMethod = array("AntiReverseEngineeringClass.detectDebugging1(true)",
+            "AntiReverseEngineeringClass.detectDebugging2(true)");
 
         $JavaFilesFinder->files()->in(str_replace("gradlew.bat", "", $rootPath) . '\app\src\main\java');
         foreach ($JavaFilesFinder as $file) { // loop on each java file except the library file
