@@ -14,6 +14,15 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Finder\Finder;
 use Log;
 use App\myClasses\JunkFunction;
+use App\myClasses\DebugDetectionComments;
+/*Things to be done
+*define blocks with out brackets (if,while...)
+*ex:
+ * if()
+ * x=10;
+
+*/
+
 
 class UploadsController extends Controller
 {
@@ -130,7 +139,7 @@ class UploadsController extends Controller
         if ($handle) {
             while (($line = fgets($handle)) !== false) {
 
-                if (strpos($line, 'buildTypes') !== false) {
+                if (strpos(strtolower($line), 'buildtypes') !== false) {
                     $gradleBuildContent[$lineCounter] = $line;
                     $lineCounter++;
                     $gradleBuildContent[$lineCounter] = "debug {\nminifyEnabled true\nproguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'\n}\n";
@@ -160,13 +169,14 @@ class UploadsController extends Controller
         $JunkCodesFinder->directories()->in($junkCodesPath);//junk codes store on the server
 
         foreach ($JunkCodesFinder as $directory) {
-            $x = 5;
+
             array_push($JunkCodesDirectories, $directory->getRealPath());
         }
 
+
         foreach ($JavaFilesFinder as $file) { //move on java files
 
-
+            $toAppend = "";
             $functions = array();//store functions which junk codes will be added to them
             $functionsCount = 0;
             $addJunkIndex = array();//the line at which the //addJunk exists
@@ -180,24 +190,70 @@ class UploadsController extends Controller
 
                 if (strpos($line, '{') !== false) {
                     $arr = explode("{", $line);//splits at {
-                    $javaFile[$lineCounter] = $arr[0];
-                    $lineCounter++;
-                    $javaFile[$lineCounter] = "{";
-                    $lineCounter++;
-                    $javaFile[$lineCounter] = $arr[1];
+                    for ($i = 0; $i < count($arr); $i++) {
+
+                        $javaFile[$lineCounter] = $arr[$i];
+                        $lineCounter++;
+                        if ($i + 1 != count($arr)) {
+                            $javaFile[$lineCounter] = "{";
+                            $lineCounter++;
+                        }
+
+                    }
+
                 } else if (strpos($line, '}') !== false) {
 
                     $arr = explode("}", $line);//splits at }
-                    $javaFile[$lineCounter] = $arr[0];
-                    $lineCounter++;
-                    $javaFile[$lineCounter] = "}";
-                    $lineCounter++;
-                    $javaFile[$lineCounter] = $arr[1];
-                } else
-                    $javaFile[$lineCounter] = $line;
 
-                $lineCounter++;
+                    for ($i = 0; $i < count($arr); $i++) {
+
+                        $javaFile[$lineCounter] = $arr[$i];
+                        $lineCounter++;
+                        if ($i + 1 != count($arr)) {
+                            $javaFile[$lineCounter] = "}";
+                            $lineCounter++;
+                        }
+
+                    }
+
+
+                } else if (strpos($line, ';') !== false) {
+                    if ($toAppend != "") {
+
+                        $javaFile[$lineCounter] = $toAppend . $line;
+                        $toAppend = "";
+                    } else
+                        $javaFile[$lineCounter] = $line;
+                    $lineCounter++;
+                } else if (strpos($line, '//') !== false) {
+
+                    $javaFile[$lineCounter] = $line;
+                    $lineCounter++;
+
+                } else {
+                    $line = trim($line, " \n\t\r");
+                    if (!(strpos($line, '@') !== false && strpos($line, '@') == 0) &&
+                        strpos(strtolower($line), "public") === false &&
+                        strpos(strtolower($line), "private") === false &&
+                        strpos(strtolower($line), "protected") === false&&
+                        strpos(strtolower($line), "while") === false&&
+                        strpos(strtolower($line), "for") === false&&
+                        strpos(strtolower($line), "if") === false&&
+                        strpos(strtolower($line), "switch") === false&&
+                        strpos(strtolower($line), "else") === false
+
+                    ) {
+                        $toAppend .= $line;
+                    } else {
+                        $javaFile[$lineCounter] = $line;
+                        $lineCounter++;
+                    }
+                }
+
+
             }
+            if (strpos($file->getRealPath(), "AntiReverse") === false)
+                Log::info($javaFile);
 
 
             $i = 0;
@@ -215,9 +271,9 @@ class UploadsController extends Controller
                     $i++;
 
             }
-            Log::info($javaFile);
+
             for ($i = 0; $i < count($javaFile); $i++) {
-                if (strpos($javaFile[$i], '//addJunk') !== false) {
+                if (strpos(strtolower($javaFile[$i]), '//addjunk') !== false) {
 
                     array_push($addJunkIndex, $i);
                 }
@@ -321,13 +377,40 @@ class UploadsController extends Controller
                             $counter++;
                         }
                     }
+                    else{ //  # of lines in $junkCodePieces  < $numberOfLinesandBlocks
+
+                        $forEachLineInsert = intval( $numberOfLinesandBlocks /count($junkCodePieces));
+                        $remainder = $numberOfLinesandBlocks % count($junkCodePieces);
+                        $blocksAndLinesIndicies = $functions[$functionsCount - 1]->getBlocksAndLinesIndicies();
+                        $piecesDone = 0;
+
+                        sort($blocksAndLinesIndicies);
+
+                        for ($i = 0; $i < count($junkCodePieces); $i++) {
+
+                            for ($j = 0; $j < $forEachLineInsert; $j++) {
+
+                                if ($piecesDone < $numberOfLinesandBlocks) {
+
+                                    array_splice($javaFile, $blocksAndLinesIndicies[$i] + $counter, 0, File::get($junkCodePieces[$piecesDone]));
+                                    $counter++;
+                                } else
+                                    break;
+
+                                $piecesDone++;
+                            }
+
+                        }
+
+                        for ($j = 0; $j < $remainder; $j++) {
+                            array_splice($javaFile, $blocksAndLinesIndicies[count($blocksAndLinesIndicies) - 1] + $counter, 0, File::get($junkCodePieces[sizeof($junkCodePieces) - $remainder + $j]));
+                            $counter++;
+                        }
+
+
+                    }
                     for ($k = $index + 1; $k < count($addJunkIndex); $k++)
                         $addJunkIndex[$k] += $counter;
-//                 else{
-//                  $forEachNLineInsert = $numberOfLinesandBlocks / $JunkCodesDirectories;
-//                  $remainder = $numberOfLinesandBlocks % $JunkCodesDirectories;
-//                  for($i=0;$i<$forEachLineInsert;$i++)
-//                 }
 
 
                 }
@@ -371,36 +454,83 @@ class UploadsController extends Controller
 
         $rootMethods = array("AntiReverseEngineeringClass.checkRootMethod1(true)",
             "AntiReverseEngineeringClass.checkRootMethod2(true)",
-            "AntiReverseEngineeringClass.checkRootMethod3(true)");
+            "AntiReverseEngineeringClass
+            .checkRootMethod3(true)");
 
-        $debugMethod = array("AntiReverseEngineeringClass.detectDebugging1(true)",
+        $debugMethodTerminate = array("AntiReverseEngineeringClass.detectDebugging1(true)",
             "AntiReverseEngineeringClass.detectDebugging2(true)");
 
+        $debugMethodNoTerminate = array("AntiReverseEngineeringClass.detectDebugging1(false)",
+            "AntiReverseEngineeringClass.detectDebugging2(false)");
         $JavaFilesFinder->files()->in(str_replace("gradlew.bat", "", $rootPath) . '\app\src\main\java');
         foreach ($JavaFilesFinder as $file) { // loop on each java file except the library file
             if (strpos($file->getRealPath(), "AntiReverseEngineeringClass") === false) {
                 #-------- for debugging methods -------------
                 $posOfComment = 0;
-                $positions = array();
+                $comments = array();
+                $commentString = "";
                 $fileContent = File::get($file->getRealPath());
-                while (($posOfComment = strpos($fileContent, "//addDebugDetection", $posOfComment)) !== false) {
-                    $positions[] = $posOfComment;
-                    $posOfComment = $posOfComment + strlen("//addDebugDetection");
-                }
-                for ($i = 0; $i < sizeof($positions); $i++) {
-                    $debugMethodUsed = $debugMethod[rand(0, 1)] . ";\n";
-                    $fileContent = substr_replace($fileContent, $debugMethodUsed, $positions[$i], strlen("//addDebugDetection"));
+                while (($posOfComment = strpos(strtolower($fileContent), "//adddebugdetection", $posOfComment)) !== false) {
+                    $comment = new DebugDetectionComments();
+                    $comment->setStartPosition($posOfComment);
+                    $commentString .= $fileContent[$posOfComment];
+                    $posOfComment++;
+                    $closingBracket = false;
+                    while ($closingBracket != true) {
 
-                    if ($i + 1 != sizeof($positions))
-                        $positions[$i + 1] = $positions[$i + 1] + ($i + 1) * strlen($debugMethodUsed) - strlen("//addDebugDetection");
+                        if ($fileContent[$posOfComment] == ']') {
+                            $comment->setEndPosition($posOfComment);
+                            $closingBracket = true;
+
+                        }
+                        $commentString .= $fileContent[$posOfComment];
+
+
+                        $posOfComment++;
+                    }
+                    $comment->setComment($commentString);
+                    $comments[] = $comment;
+                    $commentString = "";
+
                 }
+                //Log::info($comments);
+
+                $replacementLength = 0;
+                for ($i = 0; $i < count($comments); $i++) {
+
+                    preg_match("/\[(.*)\]/", $comments[$i]->getComment(), $matches);
+
+                    if (strlen(trim($matches[1])) == 0) {
+                        $replacement = $debugMethodTerminate[rand(0, 1)] . ";\n";
+
+
+                        $fileContent = substr_replace($fileContent, $replacement, $comments[$i]->getStartPosition(), strlen($comments[$i]->getComment()));
+                        $replacementLength += strlen($replacement);
+                        if ($i + 1 != sizeof($comments))
+                            $comments[$i + 1]->setStartPosition($comments[$i + 1]->getStartPosition() + $replacementLength - strlen($comments[$i]->getComment()));
+
+
+                    } else {
+                        $replacement = "if(" . $debugMethodNoTerminate[rand(0, 1)] . "){\n";//tell muath
+                        $replacement .= $matches[1] . ";}\n";//tell muath
+
+                        $fileContent = substr_replace($fileContent, $replacement, $comments[$i]->getStartPosition(), strlen($comments[$i]->getComment()));
+                        $replacementLength += strlen($replacement);
+
+                        if ($i + 1 != sizeof($comments))
+                            $comments[$i + 1]->setStartPosition($comments[$i + 1]->getStartPosition() + $replacementLength - strlen($comments[$i]->getComment()));
+
+                    }
+
+                }
+
                 file_put_contents($file->getRealPath(), $fileContent);
 
                 #-------------end of inserting debugging methods and start of inserting root methods---------------
                 $fileContent = File::get($file->getRealPath());
                 $arr = explode("\n", $fileContent);
                 for ($i = 0; $i < sizeof($arr); $i++) {
-                    if (strpos($arr[$i], "onCreate", 0) !== false) {
+                    if (strpos(strtolower($arr[$i]), "oncreate", 0) !== false) {
                         array_splice($arr, $i + 1, 0, $rootMethods[rand(0, 2)] . ";\n");
                         break;
 
@@ -427,3 +557,4 @@ class UploadsController extends Controller
 
 
 }
+

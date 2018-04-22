@@ -13,3 +13,6 @@
 
 Route::get('/upload','UploadsController@getUpload');
 Route::post('/upload','UploadsController@postUpload');
+//Route::get('/download',function (){
+//    return view('welcome');
+//});

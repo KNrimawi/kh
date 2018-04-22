@@ -22,6 +22,7 @@
 <div class="alert alert-danger" style="display: none" id="fail" style="text-align: center">
   <strong>Failed!</strong> Please make sure you have uploaded an Android project.
 </div>
+    <a id="download_link"href="/download" class="btn btn-large pull-right" style="display: none"><i class="icon-download-alt"> </i> Download APK file </a>
 </div>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script src="js/vendor/jquery.ui.widget.js"></script>
@@ -37,14 +38,16 @@ $(function () {
          }
      });
     $('#fileupload').fileupload({
-        dataType: 'json',
          maxChunkSize: 10000000, 
         maxFileSize: 1000000 * 10000,
-        done: function (e, data) {
-         
+        always: function (e, data) {
+
           $('#spin').css('display','none');
-           if(data.result.status == "success")
-            $('#success').css('display','block');
+          // console.log("success");
+           if(data.result.status == "success"){
+               $('#success').css('display','block');
+               $('#download_link').css('display','inline');
+           }
            else if(data.result.status == "Afalse")
             $('#fail').css('display','block');
            else if(data.result.status == "Zfalse"){
@@ -63,6 +66,7 @@ $(function () {
               $("#prog").html('Completed');
               $('#spin').css('display','block');
           }
+
         }
 
     });
