@@ -22,16 +22,16 @@
 <div class="alert alert-danger" style="display: none" id="fail" style="text-align: center">
   <strong>Failed!</strong> Please make sure you have uploaded an Android project.
 </div>
-    <a id="download_link"href="/download" class="btn btn-large pull-right" style="display: none"><i class="icon-download-alt"> </i> Download APK file </a>
+    <a id="download_link"href="/test" class="btn btn-large pull-right" style="display: none"><i class="icon-download-alt"> </i> Download APK file </a>
 </div>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script src="js/vendor/jquery.ui.widget.js"></script>
 <script src="js/jquery.iframe-transport.js"></script>
 <script src="js/jquery.fileupload.js"></script>
 <script>
+
 $(function () {
-  var i = 1;
-  var j = 1;
+
     $.ajaxSetup({
          headers: {
          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -47,6 +47,13 @@ $(function () {
            if(data.result.status == "success"){
                $('#success').css('display','block');
                $('#download_link').css('display','inline');
+               document.getElementById("download_link").setAttribute("href","/download/"+data.result.id);
+               console.log(data.result.id);
+
+           }
+           else if(data.result.status == "fail"){
+               $('#fail').html('<strong>Failed!</strong> Compilation error.');
+               $('#fail').css('display','block');
            }
            else if(data.result.status == "Afalse")
             $('#fail').css('display','block');

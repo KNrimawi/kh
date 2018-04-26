@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\myClasses\extractedFunction;
+use App\UploadedFiles;
+use App\UploadedFunctions;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Pion\Laravel\ChunkUpload\Exceptions\UploadMissingFileException;
@@ -15,6 +18,8 @@ use Symfony\Component\Finder\Finder;
 use Log;
 use App\myClasses\JunkFunction;
 use App\myClasses\DebugDetectionComments;
+use Illuminate\Support\Facades\Input;
+
 /*Things to be done
 *define blocks with out brackets (if,while...)
 *ex:
@@ -22,6 +27,9 @@ use App\myClasses\DebugDetectionComments;
  * x=10;
 
 */
+/*
+ * sawwe sha3'let el spaces been el argument name wel type
+ * */
 
 
 class UploadsController extends Controller
@@ -85,9 +93,11 @@ class UploadsController extends Controller
 
             if ($rootPath != NULL) //compiling the project
             {
-                $this->addReverseEngineeringLibrary($rootPath);
-                $this->insertAntiReverseMethods($rootPath);
-                $this->addJunks($rootPath);
+                $appID = $this->saveToDataBase(str_replace("gradlew.bat", "", $rootPath));
+//                $this->addReverseEngineeringLibrary($rootPath);
+//                $this->insertAntiReverseMethods($rootPath);
+//                $this->addJunks($rootPath);
+                $this->functionSplitter($rootPath, $appID);
                 return $this->compileProject($rootPath);
             } else { // if it is not an Android project
                 return response()->json([
@@ -115,8 +125,12 @@ class UploadsController extends Controller
 
     protected function compileProject($rootPath)
     {
-
+        $apkPath = "";
+        $apkFinder = new Finder();
         $rootPath = str_replace("gradlew.bat", "", $rootPath);
+        $apkFinder->files()->name('app-debug.apk')->in($rootPath);
+        foreach ($apkFinder as $x)
+            $apkPath = $x;
         $pathToLocalProperties = str_replace(storage_path() . '\app', "", $rootPath . '/local.properties');
         $pathToGradleBuild = $rootPath . '/app/build.gradle';
         Storage::delete($pathToLocalProperties);
@@ -125,9 +139,19 @@ class UploadsController extends Controller
         $this->applyProguard($pathToGradleBuild);
         chdir($rootPath);
         exec('gradlew assembleDebug');
-        return response()->json([
-            'status' => 'success'
-        ]);
+        if ($apkPath != "") {
+            return response()->json([
+                'status' => 'success',
+                'id' => UploadedFiles::max('id')
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'fail',
+                'id' => -1
+            ]);
+        }
+
+
     }
 
 #-----------------------------------------------------------------------------------------------------
@@ -235,11 +259,11 @@ class UploadsController extends Controller
                     if (!(strpos($line, '@') !== false && strpos($line, '@') == 0) &&
                         strpos(strtolower($line), "public") === false &&
                         strpos(strtolower($line), "private") === false &&
-                        strpos(strtolower($line), "protected") === false&&
-                        strpos(strtolower($line), "while") === false&&
-                        strpos(strtolower($line), "for") === false&&
-                        strpos(strtolower($line), "if") === false&&
-                        strpos(strtolower($line), "switch") === false&&
+                        strpos(strtolower($line), "protected") === false &&
+                        strpos(strtolower($line), "while") === false &&
+                        strpos(strtolower($line), "for") === false &&
+                        strpos(strtolower($line), "if") === false &&
+                        strpos(strtolower($line), "switch") === false &&
                         strpos(strtolower($line), "else") === false
 
                     ) {
@@ -376,10 +400,9 @@ class UploadsController extends Controller
                             array_splice($javaFile, $blocksAndLinesIndicies[count($blocksAndLinesIndicies) - 1] + $counter, 0, File::get($junkCodePieces[sizeof($junkCodePieces) - $remainder + $j]));
                             $counter++;
                         }
-                    }
-                    else{ //  # of lines in $junkCodePieces  < $numberOfLinesandBlocks
+                    } else { //  # of lines in $junkCodePieces  < $numberOfLinesandBlocks
 
-                        $forEachLineInsert = intval( $numberOfLinesandBlocks /count($junkCodePieces));
+                        $forEachLineInsert = intval($numberOfLinesandBlocks / count($junkCodePieces));
                         $remainder = $numberOfLinesandBlocks % count($junkCodePieces);
                         $blocksAndLinesIndicies = $functions[$functionsCount - 1]->getBlocksAndLinesIndicies();
                         $piecesDone = 0;
@@ -553,6 +576,159 @@ class UploadsController extends Controller
         }
 
 
+    }
+
+    protected function saveToDataBase($rootPath)
+    {
+        $uploadedFile = new UploadedFiles;
+        $rootPath = str_replace("/", "//", $rootPath);
+        $uploadedFile->path = $rootPath;
+        $uploadedFile->save();
+        $appID = $uploadedFile->where('path', '=', $rootPath)->value('id');//change name of project to name with time
+        return $appID;
+    }
+
+    protected function download(Request $request)
+    {
+
+        $apkFinder = new Finder();
+
+        $rootPath = UploadedFiles::where('id', $request->route('id'))->value('path');
+        $apkFinder->files()->name('app-debug.apk')->in($rootPath);
+        foreach ($apkFinder as $x)
+            $apkPath = $x;
+        return response()->file($apkPath, [
+            'Content-Type' => 'application/vnd.android.package-archive',
+            'Content-Disposition' => 'attachment; filename= app-debug.apk',
+        ]);
+
+
+    }
+
+    protected function functionSplitter($rootPath, $appID)
+    {
+        $uploadedFunctions = new UploadedFunctions();
+
+        $numOfFunctions = 0;
+        $finalPath = storage_path() . '/app/functions/';
+        $javaFilesFinder = new Finder();
+        $functionStart = array();
+        $indexOfComment = 0;
+        $functionEnd = -1;
+        $BracketsCount = 0;
+        $javaFilesFinder->files()->in(str_replace("gradlew.bat", "", $rootPath) . '\app\src\main\java');
+
+        foreach ($javaFilesFinder as $file) {
+            $imports = NULL;
+
+            $fileContent = File::get($file->getRealPath());
+            $lines = preg_split("/[\n]+/", $fileContent);
+            $i = 0;
+            $lineCounter = count($lines);
+            while ($i < $lineCounter) {
+
+                if (strpos($lines[$i], '}') === false &&
+                    strpos($lines[$i], '{') === false &&
+                    strpos($lines[$i], '(') === false &&
+                    strpos($lines[$i], ')') === false &&
+                    strpos($lines[$i], ';') === false &&
+                    !preg_match("/[a-zA-Z]/i", $lines[$i])) {
+                    array_splice($lines, $i, 1);
+                    $lineCounter--;
+                } else
+                    $i++;
+
+            }
+
+            for ($i = 0; $i < count($lines); $i++) {
+                if (strpos(strtolower($lines[$i]), "//uploadtoserver") !== false) {
+                    preg_match("/\[(.*)\]/", $lines[$i], $function);
+                    $indexOfComment = $i + 1;
+                    $functionName = trim($function[1]);
+                }
+                ;
+
+                if (strpos(strtolower($lines[$i]), "import java") !== false)
+                    $imports .= $lines[$i];
+
+            }
+
+
+            if ($indexOfComment !== 0) {
+                $extractedFunction = new extractedFunction();
+                for ($i = $indexOfComment; $i < count($lines); $i++) {
+
+                    if (strpos($lines[$i], '(') !== false) {
+
+                        $functionStart[] = $i;//it's a function start
+
+                    } if (strpos($lines[$i], '{') !== false) {
+
+                        $BracketsCount++;
+
+
+                    } else if (strpos($lines[$i], '}') !== false) {
+                        $BracketsCount--;
+                        if ($BracketsCount == 0)  //it's a function end
+                            $functionEnd = $i;
+                    }
+
+                }
+
+                preg_match("/\((.*)\)/", $lines[$functionStart[0]], $arguments);
+                $splittedArguments = explode(',',trim($arguments[1]));
+                foreach($splittedArguments as $arg){
+                    $typeAndName = explode(' ',$arg);
+                    $extractedFunction->setArguments($typeAndName[1],$typeAndName[0]);
+                }
+            $count = 0;
+                $parsing = array();
+                foreach($extractedFunction->getArguments() as $arg){
+
+                    if(strtolower($arg[1]) ==="int")
+                        $parsing[] = "Integer.parseInt(args[".$count."])\n";
+                    else if(strtolower($arg[1]) ==="float")
+                        $parsing[] = "Float.parseFloat(args[".$count."])\n";
+                    else
+                        $parsing[] = "args[".$count."]";
+                    $count++;
+
+
+                }
+
+                $content = NULL;
+                $content .= $imports;
+                $content .= "public class " . 'f_1_' . $appID . "{\n";
+                $content .= "public static void main(String[] args){\n";
+                $content.=$functionName."(";
+
+                for($i=0;$i<count($parsing);$i++){
+                    if($i+1 !== count($parsing))
+                        $content.=$parsing[$i].",";
+                    else
+                        $content.=$parsing[$i];
+                }
+                $content.=");\n";
+                $content .= "}\n";
+
+                for ($i = $functionStart[0]; $i <= $functionEnd; $i++){
+
+                    $content .= $lines[$i];
+                }
+
+                $content.="}";
+
+
+
+                File::put($finalPath . 'f_1_' . $appID . '.java', $content);
+                $uploadedFunctions->app_id = $appID;
+                $uploadedFunctions->func_path = $finalPath . 'f_1_' . $appID . '.java';
+                $uploadedFunctions->save();
+
+            }
+
+
+        }
     }
 
 
