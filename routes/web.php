@@ -13,4 +13,4 @@
 
 Route::get('/upload','UploadsController@getUpload');
 Route::post('/upload','UploadsController@postUpload');
-Route::get('download/{id}','UploadsController@download');
+Route::get('download/{id}/{name}','UploadsController@download');
