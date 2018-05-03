@@ -98,10 +98,10 @@ class UploadsController extends Controller
             if ($rootPath != NULL) //compiling the project
             {
                 $this->saveToDataBase(str_replace("gradlew.bat", "", $rootPath), $ipAddress, $name);
-//                $this->addReverseEngineeringLibrary($rootPath);
-//                $this->insertAntiReverseMethods($rootPath);
-//                $this->addJunks($rootPath);
-//                $this->functionSplitter($rootPath, $appID);
+                $this->addReverseEngineeringLibrary($rootPath);
+                $this->insertAntiReverseMethods($rootPath);
+                $this->addJunks($rootPath);
+                $this->functionSplitter($rootPath, $ipAddress);
                 return $this->compileProject($rootPath);
             } else { // if it is not an Android project
                 return response()->json([
@@ -614,7 +614,7 @@ class UploadsController extends Controller
     }
 
 
-    protected function functionSplitter($rootPath, $appID)
+    protected function functionSplitter($rootPath, $ip)
     {
         $uploadedFunctions = new UploadedFunctions();
 
@@ -692,14 +692,30 @@ class UploadsController extends Controller
                 }
                 $count = 0;
                 $parsing = array();
+                $numberOfArrayArguments = 0;
                 foreach ($extractedFunction->getArguments() as $arg) {
 
-                    if (strtolower($arg[1]) === "int")
+
+                    if (strtolower($arg[1]) === "int") {
                         $parsing[] = "Integer.parseInt(args[" . $count . "])\n";
-                    else if (strtolower($arg[1]) === "float")
+                    } else if (strtolower($arg[1]) === "float") {
                         $parsing[] = "Float.parseFloat(args[" . $count . "])\n";
-                    else
-                        $parsing[] = "args[" . $count . "]";
+                    } else if (strtolower($arg[1]) === "double") {
+                        $parsing[] = "Double.parseDouble(args[" . $count . "])\n";
+                    } else if (strtolower($arg[1]) === "int[]") {
+                        $parsing[] = $arg[0];
+                        $numberOfArrayArguments++;
+                    } else if (strtolower($arg[1]) === "string[]") {
+                        $parsing[] = $arg[0];
+                        $numberOfArrayArguments++;
+                    } else if (strtolower($arg[1]) === "float[]") {
+                        $parsing[] = $arg[0];
+                        $numberOfArrayArguments++;
+                    } else if (strtolower($arg[1]) === "double[]") {
+                        $parsing[] = $arg[0];
+                        $numberOfArrayArguments++;
+                    } else
+                        $parsing[] = "args[" . $count . "]\n";
                     $count++;
 
 
@@ -707,17 +723,101 @@ class UploadsController extends Controller
 
                 $content = NULL;
                 $content .= $imports;
-                $content .= "public class " . 'f_1_' . $appID . "{\n";
+                $content .= "import org.json.simple.*;
+                             import org.json.simple.parser.*;";
+                $content .= "public class " . 'f_1_' . str_replace(".", "_", $ip) . "{\n";
                 $content .= "public static void main(String[] args){\n";
-                $content .= $functionName . "(";
+                //----------------------
+                if ($numberOfArrayArguments == 0) {
+                    $content .= $functionName . "(";
 
-                for ($i = 0; $i < count($parsing); $i++) {
-                    if ($i + 1 !== count($parsing))
-                        $content .= $parsing[$i] . ",";
-                    else
-                        $content .= $parsing[$i];
+                    for ($i = 0; $i < count($parsing); $i++) {
+                        if ($i + 1 !== count($parsing))
+                            $content .= $parsing[$i] . ",";
+                        else
+                            $content .= $parsing[$i];
+                    }
+                    $content .= ");\n";
+                } else {
+                    $count = 0;
+//                    $append0 = "";
+//                    $append1 = "JSONParser p = new JSONParser();
+//			                   try {";
+//                    $append3 = "Object";
+//                    $append4="";
+//                    $append5 = " =p.parse(args[";
+//                    $append6="";
+//                    $append7 = "]);";
+//                    $append8 = "JSONObject jObj = (JSONObject) obj;";
+//                    $append9 = "";
+//                    $append10 = "for(int i =0;i<Integer.parseInt((String) jObj.get(\"length\"));i++){";
+//                    $append11 = "";
+//                    $append12 = "}
+//
+//		                    	}catch(Exception e) {
+//			                    System.out.println(e);
+//			                    }";
+                    $dataTypes = array();
+                    $Objects = array();
+                    $JSONObjects = array();
+                    $arraysDeclarations = array();
+                    $forLoops = array();
+                    foreach ($extractedFunction->getArguments() as $arg) {
+                        if (strpos(strtolower($arg[1]), "int[]") !== false) {
+                            $dataTypes[] = "int[] " . $arg[0] . ";\n";
+                            $Objects[] = "Object obj_" . $arg[0] . " =p.parse(args[" . $count . "]);\n";
+                            $JSONObjects[] = "JSONObject jObj_" . $arg[0] . " = (JSONObject) obj_" . $arg[0] . ";\n";
+                            $arraysDeclarations[] = $arg[0] . " = new int[Integer.parseInt((String) jObj_" . $arg[0] . ".get(\"length\"))];\n";
+                            $forLoops[] = "for(int i =0;i<Integer.parseInt((String) jObj_" . $arg[0] . ".get(\"length\"));i++)\n{" . $arg[0] . "[i]=Integer.parseInt((String)jObj_" . $arg[0] . ".get(Integer.toString(i)));}\n";
+
+
+                        } else if (strpos(strtolower($arg[1]), "string[]") !== false) {
+                            $dataTypes[] = "String[] " . $arg[0] . ";\n";
+                            $Objects[] = "Object obj_" . $arg[0] . " =p.parse(args[" . $count . "]);\n";
+                            $JSONObjects[] = "JSONObject jObj_" . $arg[0] . " = (JSONObject) obj_" . $arg[0] . ";\n";
+                            $arraysDeclarations[] = $arg[0] . " = new String[Integer.parseInt((String) jObj_" . $arg[0] . ".get(\"length\"))];\n";
+                            $forLoops[] = "for(int i =0;i<Integer.parseInt((String) jObj_" . $arg[0] . ".get(\"length\"));i++)\n{" . $arg[0] . "[i]=(String)jObj_" . $arg[0] . ".get(Integer.toString(i));}\n";
+
+                        } else if (strpos(strtolower($arg[1]), "double[]") !== false) {
+                            $dataTypes[] = "double[] " . $arg[0] . ";\n";
+                            $Objects[] = "Object obj_" . $arg[0] . " =p.parse(args[" . $count . "]);\n";
+                            $JSONObjects[] = "JSONObject jObj_" . $arg[0] . " = (JSONObject) obj_" . $arg[0] . ";\n";
+                            $arraysDeclarations[] = $arg[0] . " = new double[Integer.parseInt((String) jObj_" . $arg[0] . ".get(\"length\"))];\n";
+                            $forLoops[] = "for(int i =0;i<Double.parseDouble((String) jObj_" . $arg[0] . ".get(\"length\"));i++)\n{" . $arg[0] . "[i]=Double.parseDouble((String)jObj_" . $arg[0] . ".get(Integer.toString(i)));}\n";
+
+                        } else if (strpos(strtolower($arg[1]), "float[]") !== false) {
+                            $dataTypes[] = "float[] " . $arg[0] . ";\n";
+                            $Objects[] = "Object obj_" . $arg[0] . " =p.parse(args[" . $count . "]);\n";
+                            $JSONObjects[] = "JSONObject jObj_" . $arg[0] . " = (JSONObject) obj_" . $arg[0] . ";\n";
+                            $arraysDeclarations[] = $arg[0] . " = new float[Integer.parseInt((String) jObj_" . $arg[0] . ".get(\"length\"))];\n";
+                            $forLoops[] = "for(int i =0;i<Float.parseFloat((String) jObj_" . $arg[0] . ".get(\"length\"));i++)\n{" . $arg[0] . "[i]=Float.parseFloat((String)jObj_" . $arg[0] . ".get(Integer.toString(i)));}\n";
+
+                        }
+
+                        $count++;
+                    }
+                    foreach ($dataTypes as $dt)
+                        $content .= $dt;
+                    $content .= "JSONParser p = new JSONParser();\n";
+                    $content .= "try{\n";
+                    foreach ($Objects as $ob)
+                        $content .= $ob;
+                    foreach ($JSONObjects as $jo){
+                        $content.=$jo;
+                    }
+                    foreach ($arraysDeclarations as $ad)
+                        $content .= $ad;
+                    foreach ($forLoops as $fl)
+                        $content .= $fl;
+                    $content .= "}catch(Exception e) {
+			                    System.out.println(e);
+			                    }\n";
+
+
                 }
-                $content .= ");\n";
+
+
+                //----------------------
                 $content .= "}\n";
 
                 for ($i = $functionStart[0]; $i <= $functionEnd; $i++) {
@@ -725,13 +825,16 @@ class UploadsController extends Controller
                     $content .= $lines[$i];
                 }
 
-                $content .= "}";
+                /*
+                 * function call
+                 * store results to json file*/
+                Log::info($content);
 
 
-                File::put($finalPath . 'f_1_' . $appID . '.java', $content);
-                $uploadedFunctions->app_id = $appID;
+                File::put($finalPath . 'f_1_' . str_replace(".", "_", $ip) . '.java', $content);
+                /*$uploadedFunctions->app_id = $appID;
                 $uploadedFunctions->func_path = $finalPath . 'f_1_' . $appID . '.java';
-                $uploadedFunctions->save();
+                $uploadedFunctions->save();*/
 
             }
 
