@@ -13,4 +13,6 @@
 
 Route::get('/upload','UploadsController@getUpload');
 Route::post('/upload','UploadsController@postUpload');
-Route::get('download/{id}/{name}','UploadsController@download');
+Route::get('download/{token}/{name}','UploadsController@download');
+Route::post('/execute','ExecuteController@executeFunction');
+Route::get('/execute','ExecuteController@getExecute');

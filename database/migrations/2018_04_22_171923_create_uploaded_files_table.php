@@ -14,11 +14,11 @@ class CreateUploadedFilesTable extends Migration
     public function up()
     {
         Schema::create('uploaded_files', function (Blueprint $table) {
-            $table->ipAddress("uploader_id");
+            $table->string("uploader_token");
             $table->string('file_name');
             $table->string('path');
             $table->timestamps();
-            $table->primary(['uploader_id','file_name']);
+            $table->primary(['uploader_token','file_name']);
         });
     }
 

@@ -25,7 +25,7 @@
          <span id="spin-t"style="font-size: 8pt;color: rgb(178,178,178);display: none">     Processing-please wait, it takes a while...</span>
 
 
-    <a id="download_link"href="/test" class="btn btn-large pull-right" style="display: none"><i class="icon-download-alt"> </i> Download APK file </a>
+    <a id="download_link"href="#" class="btn btn-large pull-right" style="display: none"><i class="icon-download-alt"> </i> Download APK file </a>
 </div>
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script src="js/vendor/jquery.ui.widget.js"></script>
@@ -35,12 +35,13 @@
 
 $(function () {
 
+    localStorage['csrf_token'] = $('meta[name="csrf-token"]').attr('content');
 
-    $.getJSON("http://jsonip.com/?callback=?", function (data) {
-        localStorage['ipAddress'] = data.ip;
-        console.log(localStorage['ipAddress']);
-
-    });
+    // $.getJSON("http://jsonip.com/?callback=?", function (data) {
+    //     localStorage['ipAddress'] = data.ip;
+    //     console.log(localStorage['ipAddress']);
+    //
+    // });
     $.ajaxSetup({
          headers: {
          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -50,7 +51,7 @@ $(function () {
          maxChunkSize: 10000000,
         replaceFileInput:false,
         maxFileSize: 1000000 * 10000,
-        formData: {ip: localStorage['ipAddress']},
+        formData: {token: localStorage['csrf_token']},
         add: function (e, data) {
 
             $('#upload').click(function () {
@@ -69,8 +70,7 @@ $(function () {
            if(data.result.status == "success"){
                $('#success').css('display','block');
                $('#download_link').css('display','inline');
-               console.log("/download/"+localStorage['ipAddress']+"/"+localStorage['file_name']);
-               document.getElementById("download_link").setAttribute("href","/download/"+localStorage['ipAddress']+"/"+localStorage['file_name']);
+               document.getElementById("download_link").setAttribute("href","/download/"+localStorage['csrf_token']+"/"+localStorage['file_name']);
 
 
            }
