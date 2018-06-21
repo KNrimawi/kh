@@ -686,6 +686,9 @@ class UploadsController extends Controller
 
                 }
 
+                Log::info($functionStart[0]);
+                Log::info($lines);
+                Log::info($lines[$functionStart[0]]);
                 preg_match("/\((.*)\)/", $lines[$functionStart[0]], $arguments);
                 $splittedArguments = explode(',', trim($arguments[1]));
                 foreach ($splittedArguments as $arg) {
@@ -747,7 +750,6 @@ class UploadsController extends Controller
 
                 }
                 $functionCall .= ")).toString());\n}\n";
-                Log::info($functionCall);
                 $content .= $functionCall;
                 $content .= "catch(Exception e){\n
                                e.printStackTrace();\n}\n";

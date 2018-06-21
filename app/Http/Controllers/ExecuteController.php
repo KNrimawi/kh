@@ -13,13 +13,12 @@ class ExecuteController extends Controller
     public function executeFunction(Request $request){
 
 
-          if($request->header()['content-type'][0] === 'application/json')
-          {
+        Log::info($request->getContent());
+
 
               $path = storage_path() . '/app/functions/';
               $data = json_decode($request->getContent());
               $fileName = $data->fileName;
-
 
 
             chdir("D:\graduation project\kh\storage\app\\functions");
@@ -27,7 +26,7 @@ class ExecuteController extends Controller
 
             return $res[0];
 
-          }
+
 
 
     }

@@ -9,7 +9,7 @@
     <meta name="author" content="">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>Creative - Start Bootstrap Theme</title>
+    <title>Graduation project</title>
 
     <!-- Bootstrap core CSS -->
     <link href="js/boot_vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -47,7 +47,7 @@
                     <a class="nav-link js-scroll-trigger" href="#about">About</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link js-scroll-trigger" href="#services">Services</a>
+                    <a class="nav-link js-scroll-trigger" href="#services">Features</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link js-scroll-trigger" href="#portfolio">Upload</a>
@@ -71,7 +71,7 @@
 
             </div>
             <div class="col-lg-8 mx-auto">
-                <p class="text-faded mb-5">This framework provides many services that makes your application more immune to vulnerabilities. </p>
+                <p class="text-faded mb-5">This framework provides many features that makes your application more immune to vulnerabilities. </p>
                 <a class="btn btn-primary btn-xl js-scroll-trigger" href="#about">Documentation</a>
             </div>
         </div>
@@ -85,7 +85,7 @@
                 <h2 class="section-heading text-white">We've got what you need!</h2>
                 <hr class="light my-4">
                 <p class="text-faded mb-4">This framework provides several features to use, please read the documentation before using it.</p>
-                <a class="btn btn-light btn-xl js-scroll-trigger" href="/getdocumentation">Read documentation</a>
+                <a class="btn btn-light btn-xl js-scroll-trigger" href="/getdocumentation" target="_blank">Read documentation</a>
             </div>
         </div>
     </div>
@@ -95,7 +95,7 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-12 text-center">
-                <h2 class="section-heading">Provided Services</h2>
+                <h2 class="section-heading">Provided Features</h2>
                 <hr class="my-4">
             </div>
         </div>
@@ -155,7 +155,7 @@
         </div>
         <br>
         <div style="text-align: center">
-            <button type="button" id="upload" class="btn btn-default btn-xl sr-button"> upload</button>
+            <button type="button" id="upload" class="btn btn-xl sr-button" style="background-color: white"> upload</button>
         </div>
 
 
